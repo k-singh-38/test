@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mule xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd">
+    <http:listener-config name="HTTP_Listener_Config" host="0.0.0.0" port="8081" doc:name="HTTP Listener Config"/>
+    <flow name="AI_PoC_Simple_Filter">
+        <http:listener config-ref="HTTP_Listener_Config" path="/ack" doc:name="Listener" allowedMethods="POST"/>
+        <logger level="INFO" doc:name="Logger" message="Received message: #[payload]"/>
+        <set-variable variableName="processed_message" value="#[process_ack_message(payload)]" doc:name="Set Processed Message"/>
+        <choice doc:name="Choice">
+            <when expression="#[vars.processed_message != '']">
+                <logger level="INFO" doc:name="Logger" message="Processed message: #[vars.processed_message]"/>
+                <set-payload value="#[vars.processed_message]" doc:name="Set Payload"/>
+            </when>
+            <otherwise>
+                <logger level="INFO" doc:name="Logger" message="Message skipped due to filtering"/>
+                <set-payload value="''" doc:name="Set Payload to Empty String"/>
+            </otherwise>
+        </choice>
+        <error-handler>
+            <on-error-continue enableNotifications="true" doc:name="Error Handler">
+                <logger level="ERROR" doc:name="Error Logger" message="Error occurred: #[error.message]"/>
+                <set-payload value="Error processing message" doc:name="Set Error Payload"/>
+                <set-status-code value="500" doc:name="Set Status Code"/>
+            </on-error-continue>
+        </error-handler>
+    </flow>
+</mule>
